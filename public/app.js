@@ -3,10 +3,8 @@ const msgText = document.querySelector('#msg')
 const btnSend = document.querySelector('#btn-send')
 const chatBox = document.querySelector('.chat-content')
 const displayMsg = document.querySelector('.message')
-let name;
-do {
-    name = prompt('What is your name?')
-} while (!name)
+
+const name = localStorage.getItem('name');
 document.querySelector('#your-name').textContent = name
 msgText.focus()
 
@@ -67,6 +65,27 @@ const sendMsg = message => {
 
     chatBox.scrollTop = chatBox.scrollHeight;
 }
+// handle room click
+
+function changeRoom(element) {
+// Show the ID using the alert function
+    var id = element.getAttribute('id');
+    // Get the parent div element with class "list-group"
+    var listGroup = document.querySelector('.list-group');
+
+    // Get all anchor elements within the parent div
+    var anchorElements = listGroup.querySelectorAll('a');
+
+    // Loop through all anchor elements
+    anchorElements.forEach(function(anchor) {
+      // Remove the "active" class from each anchor element
+      anchor.classList.remove('active');
+    });
+    element.classList.add('active');
+    // Emit a message to the server that the user has changed the room
+    socket.emit('changeRoom', roomId);
+}
+
 
 // when recieve message
 socket.on('chat-chanel', msg => {
