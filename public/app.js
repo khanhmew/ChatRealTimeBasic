@@ -90,6 +90,7 @@ function changeRoom(element) {
    // Emit a message to the server that the user has changed the room
     currentRoomId = roomId;
     socket.emit('changeRoom', roomId);
+    displayMsg.innerHTML = '';
 }
 
 
