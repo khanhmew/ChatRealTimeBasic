@@ -58,35 +58,35 @@ const privateKey = keyPair.getPrivate('hex');
 
 let isSendKey = false;
 const sendMsg = message => {
-    if(message.trim() !== '' && message.trim() !== null){
-            const signature = keyPair.sign(message).toDER('hex');
-            console.log(currentRoomId);
-            let msg = {
-                user: name,
-                roomId: currentRoomId,
-                message: message.trim(),
-                signature: signature
+    if (message.trim() !== '' && message.trim() !== null) {
+        const signature = keyPair.sign(message).toDER('hex');
+        console.log(currentRoomId);
+        let msg = {
+            user: localStorage.getItem('name'),
+            roomId: currentRoomId,
+            message: message.trim(),
+            signature: signature
+        }
+
+        if (!isSendKey) {
+            const sendKeyMessage = {
+                user: localStorage.getItem('name'),
+                key: publicKey
             }
             display(msg, 'you-message')
+            socket.emit('sendPublicKey', sendKeyMessage);
+            isSendKey = true;
+        }
+        socket.emit('sendMessage', msg);
 
-            if (!isSendKey) {
-                let msg = {
-                    user:name,
-                    key: publicKey
-                }
-                socket.emit('sendPublicKey', msg);
-                
-            }
 
-            socket.emit('sendMessage', msg);
-
-            chatBox.scrollTop = chatBox.scrollHeight;
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 }
 // handle room click
 
 function changeRoom(element) {
-// Show the ID using the alert function
+    // Show the ID using the alert function
     var roomId = element.getAttribute('id');
     // Get the parent div element with class "list-group"
     var listGroup = document.querySelector('.list-group');
@@ -95,23 +95,23 @@ function changeRoom(element) {
     var anchorElements = listGroup.querySelectorAll('a');
 
     // Loop through all anchor elements
-    anchorElements.forEach(function(anchor) {
-      // Remove the "active" class from each anchor element
-      anchor.classList.remove('active');
+    anchorElements.forEach(function (anchor) {
+        // Remove the "active" class from each anchor element
+        anchor.classList.remove('active');
     });
     element.classList.add('active');
-   // Emit a message to the server that the user has changed the room
+    // Emit a message to the server that the user has changed the room
     currentRoomId = roomId;
-    socket.emit('changeRoom', roomId);
+    socket.emit('changeRoom', { roomId: roomId, user: localStorage.getItem('name') });
     displayMsg.innerHTML = '';
 }
 
 
 // when recieve message
 socket.on('chat-chanel', msg => {
-    if(msg.user !== name)
-    {
-        const keyPairB = ec.keyFromPublic(localStorage.getItem('publicKey'+msg.user), 'hex');
+    console.log(msg);
+    if (msg.user !== localStorage.getItem('name')) {
+        const keyPairB = ec.keyFromPublic(localStorage.getItem('publicKey' + msg.user), 'hex');
 
         const isSignatureValid = keyPairB.verify(msg.message, msg.signature);
 
@@ -121,16 +121,15 @@ socket.on('chat-chanel', msg => {
         else {
             console.log("Message không hợp lệ");
             msg.message = msg.message + ' ' + "(KHÔNG HỢP LỆ)";
-
         }
-
         display(msg, 'other-message');
-       
+    } else {
+        display(msg, 'you-message')
     }
+
     chatBox.scrollTop = chatBox.scrollHeight;
 })
 
 socket.on('key-chanel', msg => {
-    
-    localStorage.setItem("publicKey"+msg.user, msg.key);
+    localStorage.setItem("publicKey" + msg.user, msg.key);
 })
