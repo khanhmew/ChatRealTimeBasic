@@ -15,6 +15,17 @@ btnSend.addEventListener('click', (e) => {
     msgText.focus()
 })
 
+
+// Add keypress event listener for the input field
+msgText.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMsg(msgText.value);
+        msgText.value = "";
+        msgText.focus();
+    }
+});
+
 const display = (msg, type) => {
     const msgDiv = document.createElement('div');
     let className = type
@@ -47,28 +58,30 @@ const privateKey = keyPair.getPrivate('hex');
 
 let isSendKey = false;
 const sendMsg = message => {
-    const signature = keyPair.sign(message).toDER('hex');
-    console.log(currentRoomId);
-    let msg = {
-        user: name,
-        roomId: currentRoomId,
-        message: message.trim(),
-        signature: signature
+    if(message.trim() !== '' && message.trim() !== null){
+            const signature = keyPair.sign(message).toDER('hex');
+            console.log(currentRoomId);
+            let msg = {
+                user: name,
+                roomId: currentRoomId,
+                message: message.trim(),
+                signature: signature
+            }
+            display(msg, 'you-message')
+
+            if (!isSendKey) {
+                let msg = {
+                    user:name,
+                    key: publicKey
+                }
+                socket.emit('sendPublicKey', msg);
+                
+            }
+
+            socket.emit('sendMessage', msg);
+
+            chatBox.scrollTop = chatBox.scrollHeight;
     }
-    display(msg, 'you-message')
-
-    if (!isSendKey) {
-        let msg = {
-            user:name,
-            key: publicKey
-        }
-        socket.emit('sendPublicKey', msg);
-        
-    }
-
-    socket.emit('sendMessage', msg);
-
-    chatBox.scrollTop = chatBox.scrollHeight;
 }
 // handle room click
 
