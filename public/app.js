@@ -3,7 +3,7 @@ const msgText = document.querySelector('#msg')
 const btnSend = document.querySelector('#btn-send')
 const chatBox = document.querySelector('.chat-content')
 const displayMsg = document.querySelector('.message')
-
+let currentRoomId = "room1";
 const name = localStorage.getItem('name');
 document.querySelector('#your-name').textContent = name
 msgText.focus()
@@ -48,17 +48,22 @@ const privateKey = keyPair.getPrivate('hex');
 let isSendKey = false;
 const sendMsg = message => {
     const signature = keyPair.sign(message).toDER('hex');
-
+    console.log(currentRoomId);
     let msg = {
         user: name,
+        roomId: currentRoomId,
         message: message.trim(),
         signature: signature
     }
     display(msg, 'you-message')
 
     if (!isSendKey) {
-        socket.emit('sendPublicKey', publicKey);
-        isSendKey = true;
+        let msg = {
+            user:name,
+            key: publicKey
+        }
+        socket.emit('sendPublicKey', msg);
+        
     }
 
     socket.emit('sendMessage', msg);
@@ -69,7 +74,7 @@ const sendMsg = message => {
 
 function changeRoom(element) {
 // Show the ID using the alert function
-    var id = element.getAttribute('id');
+    var roomId = element.getAttribute('id');
     // Get the parent div element with class "list-group"
     var listGroup = document.querySelector('.list-group');
 
@@ -82,29 +87,36 @@ function changeRoom(element) {
       anchor.classList.remove('active');
     });
     element.classList.add('active');
-    // Emit a message to the server that the user has changed the room
+   // Emit a message to the server that the user has changed the room
+    currentRoomId = roomId;
     socket.emit('changeRoom', roomId);
 }
 
 
 // when recieve message
 socket.on('chat-chanel', msg => {
-    display(msg, 'other-message');
-    const keyPairB = ec.keyFromPublic(localStorage.getItem('publicKey'), 'hex');
+    if(msg.user !== name)
+    {
+        const keyPairB = ec.keyFromPublic(localStorage.getItem('publicKey'+msg.user), 'hex');
 
-    const isSignatureValid = keyPairB.verify(msg.message, msg.signature);
+        const isSignatureValid = keyPairB.verify(msg.message, msg.signature);
 
-    if (isSignatureValid) {
-        console.log("Message hợp lệ");
-    }
-    else {
-        console.log("Message không hợp lệ");
+        if (isSignatureValid) {
+            console.log("Message hợp lệ");
+        }
+        else {
+            console.log("Message không hợp lệ");
+            msg.message = msg.message + ' ' + "(KHÔNG HỢP LỆ)";
 
+        }
+
+        display(msg, 'other-message');
+       
     }
     chatBox.scrollTop = chatBox.scrollHeight;
 })
 
-socket.on('key-chanel', key => {
-    console.log("Key receive", key);
-    localStorage.setItem('publicKey', key);
+socket.on('key-chanel', msg => {
+    
+    localStorage.setItem("publicKey"+msg.user, msg.key);
 })
